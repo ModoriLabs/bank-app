@@ -18,7 +18,8 @@ type BankAction =
   | { type: "UPDATE_USERS"; payload: User[] }
   | { type: "SET_TRANSACTIONS"; payload: Transaction[] }
   | { type: "SET_ALL_TRANSACTIONS"; payload: Transaction[] }
-  | { type: "SET_LOADING"; payload: boolean };
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "RESTORE_USER"; payload: User };
 
 // Context type
 interface BankContextType {
@@ -35,6 +36,31 @@ interface BankContextType {
   resetDatabase: () => Promise<boolean>;
   refreshUsers: () => Promise<void>;
 }
+
+// localStorage helper functions
+const saveUserToStorage = (user: User) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("bankApp_currentUser", JSON.stringify(user));
+  }
+};
+
+const getUserFromStorage = (): User | null => {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("bankApp_currentUser");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const removeUserFromStorage = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("bankApp_currentUser");
+  }
+};
 
 // Initial state
 const initialState: BankState & {
@@ -62,6 +88,14 @@ const bankReducer = (
     }
 
     case "LOGIN": {
+      saveUserToStorage(action.payload);
+      return {
+        ...state,
+        currentUser: action.payload,
+      };
+    }
+
+    case "RESTORE_USER": {
       return {
         ...state,
         currentUser: action.payload,
@@ -69,6 +103,7 @@ const bankReducer = (
     }
 
     case "LOGOUT": {
+      removeUserFromStorage();
       return {
         ...state,
         currentUser: null,
@@ -94,6 +129,8 @@ const bankReducer = (
         );
         if (currentUserUpdate) {
           updatedCurrentUser = currentUserUpdate;
+          // Update localStorage as well
+          saveUserToStorage(currentUserUpdate);
         }
       }
 
@@ -137,8 +174,12 @@ const BankContext = createContext<BankContextType | undefined>(undefined);
 export function BankProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(bankReducer, initialState);
 
-  // Fetch users on mount
+  // Restore user from localStorage on mount
   useEffect(() => {
+    const storedUser = getUserFromStorage();
+    if (storedUser) {
+      dispatch({ type: "RESTORE_USER", payload: storedUser });
+    }
     fetchUsers();
   }, []);
 
