@@ -1,14 +1,19 @@
 "use client";
 
-import { useBankStore } from "../lib/useBankStore";
+import { useBankContext } from "../lib/BankContext";
 import { LoginForm } from "../components/LoginForm";
 import { UserInfo } from "../components/UserInfo";
 import { TransferForm } from "../components/TransferForm";
 import { TransactionHistory } from "../components/TransactionHistory";
 
 export default function BankApp() {
-  const { users, currentUser, login, logout, transfer, getUserTransactions } =
-    useBankStore();
+  const {
+    state: { users, currentUser },
+    login,
+    logout,
+    transfer,
+    getUserTransactions,
+  } = useBankContext();
 
   const handleLogin = (userId: string) => {
     login(userId);

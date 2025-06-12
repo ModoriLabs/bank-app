@@ -3,76 +3,101 @@
 import { Transaction, BankState } from "../types";
 import { initialUsers, initialTransactions } from "../data/mockData";
 
-class BankStore {
-  private state: BankState = {
-    users: [...initialUsers],
-    transactions: [...initialTransactions],
-    currentUser: null,
+// Global state
+const state: BankState = {
+  users: [...initialUsers],
+  transactions: [...initialTransactions],
+  currentUser: null,
+};
+
+// Listeners for state changes
+let listeners: (() => void)[] = [];
+
+// Helper function to notify all listeners
+const notify = () => {
+  listeners.forEach((listener) => listener());
+};
+
+// Get current state (returns a copy to prevent direct mutation)
+export const getState = (): BankState => {
+  return {
+    users: [...state.users],
+    transactions: [...state.transactions],
+    currentUser: state.currentUser ? { ...state.currentUser } : null,
+  };
+};
+
+// Subscribe to state changes
+export const subscribe = (listener: () => void) => {
+  listeners.push(listener);
+
+  // Return unsubscribe function
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+  };
+};
+
+// Login function
+export const login = (userId: string) => {
+  const user = state.users.find((u) => u.id === userId);
+  if (user) {
+    state.currentUser = user;
+    notify();
+  }
+};
+
+// Logout function
+export const logout = () => {
+  state.currentUser = null;
+  notify();
+};
+
+// Transfer function
+export const transfer = (
+  fromUserId: string,
+  toUserId: string,
+  amount: number
+): boolean => {
+  const fromUser = state.users.find((u) => u.id === fromUserId);
+  const toUser = state.users.find((u) => u.id === toUserId);
+
+  if (!fromUser || !toUser || fromUser.balance < amount || amount <= 0) {
+    return false;
+  }
+
+  // Update balances
+  fromUser.balance -= amount;
+  toUser.balance += amount;
+
+  // Create transaction record
+  const transaction: Transaction = {
+    id: Date.now().toString(),
+    fromUserId,
+    toUserId,
+    amount,
+    timestamp: new Date(),
+    fromUserName: fromUser.name,
+    toUserName: toUser.name,
   };
 
-  private listeners: (() => void)[] = [];
+  state.transactions.push(transaction);
+  notify();
+  return true;
+};
 
-  getState(): BankState {
-    return { ...this.state };
-  }
+// Get user transactions
+export const getUserTransactions = (userId: string): Transaction[] => {
+  return state.transactions.filter(
+    (t) => t.fromUserId === userId || t.toUserId === userId
+  );
+};
 
-  subscribe(listener: () => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
-  }
-
-  private notify() {
-    this.listeners.forEach((listener) => listener());
-  }
-
-  login(userId: string) {
-    const user = this.state.users.find((u) => u.id === userId);
-    if (user) {
-      this.state.currentUser = user;
-      this.notify();
-    }
-  }
-
-  logout() {
-    this.state.currentUser = null;
-    this.notify();
-  }
-
-  transfer(fromUserId: string, toUserId: string, amount: number): boolean {
-    const fromUser = this.state.users.find((u) => u.id === fromUserId);
-    const toUser = this.state.users.find((u) => u.id === toUserId);
-
-    if (!fromUser || !toUser || fromUser.balance < amount || amount <= 0) {
-      return false;
-    }
-
-    // Update balances
-    fromUser.balance -= amount;
-    toUser.balance += amount;
-
-    // Create transaction record
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      fromUserId,
-      toUserId,
-      amount,
-      timestamp: new Date(),
-      fromUserName: fromUser.name,
-      toUserName: toUser.name,
-    };
-
-    this.state.transactions.push(transaction);
-    this.notify();
-    return true;
-  }
-
-  getUserTransactions(userId: string): Transaction[] {
-    return this.state.transactions.filter(
-      (t) => t.fromUserId === userId || t.toUserId === userId
-    );
-  }
-}
-
-export const bankStore = new BankStore();
+// Export all functions as a single object for convenience (optional)
+export const bankStore = {
+  getState,
+  subscribe,
+  login,
+  logout,
+  transfer,
+  getUserTransactions,
+};
