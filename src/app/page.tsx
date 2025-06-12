@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { Transaction } from "../types";
 import { useBankContext } from "../lib/BankContext";
 import { LoginForm } from "../components/LoginForm";
 import { UserInfo } from "../components/UserInfo";
@@ -8,12 +10,38 @@ import { TransactionHistory } from "../components/TransactionHistory";
 
 export default function BankApp() {
   const {
-    state: { users, currentUser },
+    state: { users, currentUser, loading },
     login,
     logout,
     transfer,
     getUserTransactions,
   } = useBankContext();
+
+  const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
+  const [transactionLoading, setTransactionLoading] = useState(false);
+
+  // Fetch transactions when user logs in
+  useEffect(() => {
+    if (currentUser) {
+      fetchTransactions();
+    } else {
+      setUserTransactions([]);
+    }
+  }, [currentUser]);
+
+  const fetchTransactions = async () => {
+    if (!currentUser) return;
+
+    setTransactionLoading(true);
+    try {
+      const transactions = await getUserTransactions(currentUser.id);
+      setUserTransactions(transactions);
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+    } finally {
+      setTransactionLoading(false);
+    }
+  };
 
   const handleLogin = (userId: string) => {
     login(userId);
@@ -23,17 +51,36 @@ export default function BankApp() {
     logout();
   };
 
-  const handleTransfer = (toUserId: string, amount: number): boolean => {
+  const handleTransfer = async (
+    toUserId: string,
+    amount: number
+  ): Promise<boolean> => {
     if (!currentUser) return false;
-    return transfer(currentUser.id, toUserId, amount);
+
+    const success = await transfer(currentUser.id, toUserId, amount);
+    if (success) {
+      // Refresh transactions after successful transfer
+      await fetchTransactions();
+    }
+    return success;
   };
+
+  // Show loading state while fetching users
+  if (loading && users.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login form if no user is logged in
   if (!currentUser) {
     return <LoginForm users={users} onLogin={handleLogin} />;
   }
-
-  const userTransactions = getUserTransactions(currentUser.id);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -49,6 +96,7 @@ export default function BankApp() {
                 currentUser={currentUser}
                 users={users}
                 onTransfer={handleTransfer}
+                loading={loading}
               />
 
               {/* Quick Stats */}
@@ -56,38 +104,44 @@ export default function BankApp() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Account Summary
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">
-                      Total Transactions
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {userTransactions.length}
-                    </span>
+                {transactionLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Money Sent</span>
-                    <span className="text-sm font-medium text-red-600">
-                      $
-                      {userTransactions
-                        .filter((t) => t.fromUserId === currentUser.id)
-                        .reduce((sum, t) => sum + t.amount, 0)
-                        .toLocaleString()}
-                    </span>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">
+                        Total Transactions
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {userTransactions.length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Money Sent</span>
+                      <span className="text-sm font-medium text-red-600">
+                        $
+                        {userTransactions
+                          .filter((t) => t.fromUserId === currentUser.id)
+                          .reduce((sum, t) => sum + t.amount, 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">
+                        Money Received
+                      </span>
+                      <span className="text-sm font-medium text-green-600">
+                        $
+                        {userTransactions
+                          .filter((t) => t.toUserId === currentUser.id)
+                          .reduce((sum, t) => sum + t.amount, 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">
-                      Money Received
-                    </span>
-                    <span className="text-sm font-medium text-green-600">
-                      $
-                      {userTransactions
-                        .filter((t) => t.toUserId === currentUser.id)
-                        .reduce((sum, t) => sum + t.amount, 0)
-                        .toLocaleString()}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -95,6 +149,7 @@ export default function BankApp() {
             <TransactionHistory
               transactions={userTransactions}
               currentUserId={currentUser.id}
+              loading={transactionLoading}
             />
           </div>
         </div>

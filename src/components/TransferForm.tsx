@@ -6,13 +6,15 @@ import { User } from "../types";
 interface TransferFormProps {
   currentUser: User;
   users: User[];
-  onTransfer: (toUserId: string, amount: number) => boolean;
+  onTransfer: (toUserId: string, amount: number) => Promise<boolean>;
+  loading?: boolean;
 }
 
 export function TransferForm({
   currentUser,
   users,
   onTransfer,
+  loading = false,
 }: TransferFormProps) {
   const [toUserId, setToUserId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -37,20 +39,24 @@ export function TransferForm({
     }
 
     setIsSubmitting(true);
-    const success = onTransfer(toUserId, transferAmount);
+    try {
+      const success = await onTransfer(toUserId, transferAmount);
 
-    if (success) {
-      setMessage("Transfer successful!");
-      setToUserId("");
-      setAmount("");
-    } else {
+      if (success) {
+        setMessage("Transfer successful!");
+        setToUserId("");
+        setAmount("");
+      } else {
+        setMessage("Transfer failed. Please try again.");
+      }
+    } catch {
       setMessage("Transfer failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(""), 3000);
     }
-
-    setIsSubmitting(false);
-
-    // Clear message after 3 seconds
-    setTimeout(() => setMessage(""), 3000);
   };
 
   return (
@@ -83,6 +89,7 @@ export function TransferForm({
             onChange={(e) => setToUserId(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
+            disabled={loading || isSubmitting}
           >
             <option value="">Select recipient...</option>
             {availableUsers.map((user) => (
@@ -111,6 +118,7 @@ export function TransferForm({
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="0.00"
             required
+            disabled={loading || isSubmitting}
           />
           <p className="mt-1 text-sm text-gray-500">
             Available balance: ${currentUser.balance.toLocaleString()}
@@ -119,7 +127,7 @@ export function TransferForm({
 
         <button
           type="submit"
-          disabled={isSubmitting || !toUserId || !amount}
+          disabled={isSubmitting || loading || !toUserId || !amount}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Processing..." : "Send Money"}
