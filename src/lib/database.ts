@@ -201,7 +201,7 @@ export async function createTransaction(
 }
 
 export async function getTransactionById(
-  id: string
+  id: number
 ): Promise<Transaction | null> {
   try {
     const transaction = await prisma.transaction.findUnique({

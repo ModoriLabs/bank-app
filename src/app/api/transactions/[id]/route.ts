@@ -15,7 +15,17 @@ export async function GET(
       );
     }
 
-    const transaction = await getTransactionById(id);
+    // Parse string id to number
+    const transactionId = parseInt(id, 10);
+
+    if (isNaN(transactionId)) {
+      return NextResponse.json(
+        { error: "Invalid transaction ID" },
+        { status: 400 }
+      );
+    }
+
+    const transaction = await getTransactionById(transactionId);
 
     if (!transaction) {
       return NextResponse.json(

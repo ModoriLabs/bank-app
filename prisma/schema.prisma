@@ -32,7 +32,7 @@ model User {
 }
 
 model Transaction {
-  id          String   @id @default(cuid())
+  id          Int      @id @default(autoincrement())
   amount      Float
   timestamp   DateTime @default(now())
   

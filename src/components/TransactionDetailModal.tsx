@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Transaction } from "../types";
 
 interface TransactionDetailModalProps {
-  transactionId: string;
+  transactionId: number;
   isOpen: boolean;
   onClose: () => void;
   currentUserId: string;

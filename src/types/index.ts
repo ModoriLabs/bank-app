@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface Transaction {
-  id: string;
+  id: number;
   fromUserId: string;
   toUserId: string;
   amount: number;

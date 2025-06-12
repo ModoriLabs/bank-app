@@ -17,18 +17,17 @@ export function TransactionHistory({
   loading,
   showAllUsers = false,
 }: TransactionHistoryProps) {
-  const [selectedTransactionId, setSelectedTransactionId] =
-    useState<string>("");
+  const [selectedTransactionId, setSelectedTransactionId] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleTransactionClick = (transactionId: string) => {
+  const handleTransactionClick = (transactionId: number) => {
     setSelectedTransactionId(transactionId);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedTransactionId("");
+    setSelectedTransactionId(0);
   };
 
   if (loading) {
