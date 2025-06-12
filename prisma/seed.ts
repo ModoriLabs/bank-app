@@ -8,29 +8,46 @@ async function main() {
   // Create initial users
   const users = await Promise.all([
     prisma.user.upsert({
-      where: { email: "alice@example.com" },
+      where: { email: "qpzm@example.com" },
       update: {},
       create: {
-        name: "Alice Johnson",
-        email: "alice@example.com",
+        name: "qpzm",
+        email: "qpzm@example.com",
+        password: "qpzm",
+        role: "user",
         balance: 10000,
       },
     }),
     prisma.user.upsert({
-      where: { email: "bob@example.com" },
+      where: { email: "karl@example.com" },
       update: {},
       create: {
-        name: "Bob Smith",
-        email: "bob@example.com",
+        name: "karl",
+        email: "karl@example.com",
+        password: "karl",
+        role: "user",
         balance: 10000,
       },
     }),
     prisma.user.upsert({
-      where: { email: "charlie@example.com" },
+      where: { email: "teddev@example.com" },
       update: {},
       create: {
-        name: "Charlie Brown",
-        email: "charlie@example.com",
+        name: "teddev",
+        email: "teddev@example.com",
+        password: "teddev",
+        role: "user",
+        balance: 10000,
+      },
+    }),
+    prisma.user.upsert({
+      where: { email: "ky@example.com" },
+      update: {},
+      create: {
+        name: "ky",
+        email: "ky@example.com",
+        password: "ky",
+        role: "user",
         balance: 10000,
       },
     }),
@@ -38,8 +55,10 @@ async function main() {
       where: { email: "admin@example.com" },
       update: {},
       create: {
-        name: "Admin",
+        name: "admin",
         email: "admin@example.com",
+        password: "admin",
+        role: "admin",
         balance: 10000,
       },
     }),
@@ -47,7 +66,11 @@ async function main() {
 
   console.log(
     "Created users:",
-    users.map((user) => ({ name: user.name, email: user.email }))
+    users.map((user) => ({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }))
   );
   console.log("Seeding finished.");
 }

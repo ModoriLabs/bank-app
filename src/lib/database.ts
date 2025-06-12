@@ -4,30 +4,58 @@ import { User, Transaction } from "../types";
 // User operations
 export async function getAllUsers(): Promise<User[]> {
   const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      role: true,
+      balance: true,
+    },
     orderBy: { name: "asc" },
   });
 
-  return users.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    balance: user.balance,
-  }));
+  return users;
 }
 
 export async function getUserById(id: string): Promise<User | null> {
   const user = await prisma.user.findUnique({
     where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      role: true,
+      balance: true,
+    },
   });
 
-  if (!user) return null;
+  return user;
+}
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    balance: user.balance,
-  };
+export async function authenticateUser(
+  email: string,
+  password: string
+): Promise<User | null> {
+  console.log("email, password", email, password);
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      role: true,
+      balance: true,
+    },
+  });
+
+  if (!user || user.password !== password) {
+    return null;
+  }
+
+  return user;
 }
 
 export async function updateUserBalance(
@@ -53,6 +81,26 @@ export async function getUserTransactions(
     where: {
       OR: [{ fromUserId: userId }, { toUserId: userId }],
     },
+    include: {
+      fromUser: true,
+      toUser: true,
+    },
+    orderBy: { timestamp: "desc" },
+  });
+
+  return transactions.map((transaction) => ({
+    id: transaction.id,
+    fromUserId: transaction.fromUserId,
+    toUserId: transaction.toUserId,
+    amount: transaction.amount,
+    timestamp: transaction.timestamp,
+    fromUserName: transaction.fromUser.name,
+    toUserName: transaction.toUser.name,
+  }));
+}
+
+export async function getAllTransactions(): Promise<Transaction[]> {
+  const transactions = await prisma.transaction.findMany({
     include: {
       fromUser: true,
       toUser: true,
@@ -130,12 +178,16 @@ export async function createTransaction(
         id: result.updatedFromUser.id,
         name: result.updatedFromUser.name,
         email: result.updatedFromUser.email,
+        password: result.updatedFromUser.password,
+        role: result.updatedFromUser.role,
         balance: result.updatedFromUser.balance,
       },
       {
         id: result.updatedToUser.id,
         name: result.updatedToUser.name,
         email: result.updatedToUser.email,
+        password: result.updatedToUser.password,
+        role: result.updatedToUser.role,
         balance: result.updatedToUser.balance,
       },
     ];
@@ -144,6 +196,67 @@ export async function createTransaction(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Transfer failed";
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Admin operations
+export async function resetDatabase(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Delete all transactions first (foreign key constraint)
+    await prisma.transaction.deleteMany({});
+
+    // Delete all users
+    await prisma.user.deleteMany({});
+
+    // Recreate initial users
+    await prisma.user.createMany({
+      data: [
+        {
+          name: "qpzm",
+          email: "qpzm@example.com",
+          password: "qpzm",
+          role: "user",
+          balance: 10000,
+        },
+        {
+          name: "karl",
+          email: "karl@example.com",
+          password: "karl",
+          role: "user",
+          balance: 10000,
+        },
+        {
+          name: "teddev",
+          email: "teddev@example.com",
+          password: "teddev",
+          role: "user",
+          balance: 10000,
+        },
+        {
+          name: "ky",
+          email: "ky@example.com",
+          password: "ky",
+          role: "user",
+          balance: 10000,
+        },
+        {
+          name: "admin",
+          email: "admin@example.com",
+          password: "admin",
+          role: "admin",
+          balance: 10000,
+        },
+      ],
+    });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Reset failed";
     return { success: false, error: errorMessage };
   }
 }
