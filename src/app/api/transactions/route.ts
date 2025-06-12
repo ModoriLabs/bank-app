@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverStore } from "../../../lib/serverStore";
+import { getUserTransactions } from "../../../lib/database";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const transactions = serverStore.getUserTransactions(userId);
+    const transactions = await getUserTransactions(userId);
     return NextResponse.json({ transactions });
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch transactions:", error);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
       { status: 500 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { serverStore } from "../../../lib/serverStore";
+import { createTransaction } from "../../../lib/database";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,22 +18,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
-    // Perform transfer
-    const result = serverStore.transfer(fromUserId, toUserId, amount);
+    // Perform transfer using Prisma
+    const result = await createTransaction(fromUserId, toUserId, amount);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // Return updated user data
-    const updatedFromUser = serverStore.getUser(fromUserId);
-    const updatedToUser = serverStore.getUser(toUserId);
-
     return NextResponse.json({
       success: true,
-      updatedUsers: [updatedFromUser, updatedToUser],
+      updatedUsers: result.updatedUsers,
     });
-  } catch {
+  } catch (error) {
+    console.error("Transfer error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
