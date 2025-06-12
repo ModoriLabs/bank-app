@@ -32,7 +32,7 @@ export function BankDashboard() {
       if (activeTab === "personal") {
         const transactions = await getUserTransactions(currentUser.id);
         setUserTransactions(transactions);
-      } else if (activeTab === "all" && currentUser.role === "admin") {
+      } else if (activeTab === "all") {
         await getAllTransactions();
       }
     } catch (error) {
@@ -199,21 +199,21 @@ export function BankDashboard() {
                   >
                     My Transactions
                   </button>
-                  {currentUser.role === "admin" && (
-                    <button
-                      onClick={() => setActiveTab("all")}
-                      className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === "all"
-                          ? "border-indigo-500 text-indigo-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      All Transactions
+                  <button
+                    onClick={() => setActiveTab("all")}
+                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === "all"
+                        ? "border-indigo-500 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    All Transactions
+                    {currentUser.role === "admin" && (
                       <span className="ml-2 bg-red-100 text-red-600 py-1 px-2 rounded-full text-xs">
                         Admin
                       </span>
-                    </button>
-                  )}
+                    )}
+                  </button>
                 </nav>
               </div>
 

@@ -200,6 +200,37 @@ export async function createTransaction(
   }
 }
 
+export async function getTransactionById(
+  id: string
+): Promise<Transaction | null> {
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        fromUser: true,
+        toUser: true,
+      },
+    });
+
+    if (!transaction) {
+      return null;
+    }
+
+    return {
+      id: transaction.id,
+      fromUserId: transaction.fromUserId,
+      toUserId: transaction.toUserId,
+      amount: transaction.amount,
+      timestamp: transaction.timestamp,
+      fromUserName: transaction.fromUser.name,
+      toUserName: transaction.toUser.name,
+    };
+  } catch (error) {
+    console.error("Failed to fetch transaction by ID:", error);
+    return null;
+  }
+}
+
 // Admin operations
 export async function resetDatabase(): Promise<{
   success: boolean;
